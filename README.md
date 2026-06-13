@@ -86,12 +86,13 @@ python3 -m unittest discover -s tests
 python3 -m revinspector samples/example.sh
 ```
 
-## shadcn.io MCP
+## shadcn/ui note
 
-This repo includes a project-scoped shadcn.io MCP config in `.codex/config.toml`. Export your personal Pro token before starting Codex:
+This project does not use the paid shadcn.io MCP/private registry and does not require `SHADCNIO_TOKEN`.
+
+The current UI is FastAPI + Jinja2 + plain CSS. If the project later adds a React/Tailwind frontend, use the normal open-source shadcn/ui CLI:
 
 ```bash
-export SHADCNIO_TOKEN="your-token-here"
+npx shadcn@latest init
+npx shadcn@latest add button
 ```
-
-Then restart Codex from this trusted project and call the server explicitly, for example: `use shadcnio to search for dashboard table blocks`.

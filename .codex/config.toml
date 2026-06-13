@@ -1,4 +1,0 @@
-[mcp_servers.shadcnio]
-url = "https://www.shadcn.io/api/mcp"
-bearer_token_env_var = "SHADCNIO_TOKEN"
-startup_timeout_sec = 20
