@@ -39,6 +39,8 @@ def build_findings(
     for section in sections:
         if "execute" in section.flags and "write" in section.flags:
             findings.append(Finding("section", section.name, "medium", "Section is both writable and executable."))
+        if "execute" in section.flags and section.name.lower() not in {".text", "text", "__text"}:
+            findings.append(Finding("section", section.name, "low", "Executable code appears outside a common code section name."))
 
     for match in yara_matches:
         findings.append(Finding("yara", match, "medium", "YARA rule matched."))

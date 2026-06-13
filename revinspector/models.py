@@ -29,6 +29,7 @@ class AnalysisReport:
     size: int
     hashes: dict[str, str]
     architecture: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
     compiler_hints: list[str] = field(default_factory=list)
     sections: list[SectionInfo] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)
@@ -46,6 +47,7 @@ class AnalysisReport:
             "size": self.size,
             "hashes": self.hashes,
             "architecture": self.architecture,
+            "details": self.details,
             "compiler_hints": self.compiler_hints,
             "sections": [asdict(section) for section in self.sections],
             "imports": self.imports,

@@ -19,7 +19,7 @@ from .yara_scan import scan_yara
 def analyze_file(path: Path, yara_rules: Path | None = None) -> AnalysisReport:
     path = path.expanduser().resolve()
     file_type = detect_file_type(path)
-    architecture, compiler_hints, sections = collect_metadata(path, file_type)
+    architecture, details, compiler_hints, sections = collect_metadata(path, file_type)
     imports, exports = parse_imports_exports(path, file_type)
     strings = categorize_strings(extract_strings(path))
     yara_matches = scan_yara(path, yara_rules)
@@ -32,6 +32,7 @@ def analyze_file(path: Path, yara_rules: Path | None = None) -> AnalysisReport:
         size=path.stat().st_size,
         hashes=file_hashes(path),
         architecture=architecture,
+        details=details,
         compiler_hints=compiler_hints,
         sections=sections,
         imports=imports,
@@ -94,6 +95,7 @@ def to_text(report: AnalysisReport) -> str:
         "",
     ]
     _append_list(lines, "Compiler hints", data["compiler_hints"])
+    _append_details(lines, data["details"])
     _append_sections(lines, data["sections"])
     _append_list(lines, "Imports", data["imports"])
     _append_list(lines, "Exports", data["exports"])
@@ -126,6 +128,7 @@ def _metadata_html(data: dict[str, Any]) -> str:
         ("SHA1", data["hashes"]["sha1"]),
         ("SHA256", data["hashes"]["sha256"]),
     ]
+    rows.extend((key.replace("_", " ").title(), _format_detail_value(value)) for key, value in data["details"].items())
     if data["compiler_hints"]:
         rows.append(("Compiler hints", ", ".join(data["compiler_hints"])))
     return _table_html("Metadata", rows)
@@ -145,6 +148,12 @@ def _table_html(title: str, rows: list[tuple[str, str]]) -> str:
             "    </section>",
         ]
     )
+
+
+def _format_detail_value(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value)
+    return str(value)
 
 
 def _findings_html(findings: list[dict[str, str]]) -> str:
@@ -270,6 +279,17 @@ def _append_sections(lines: list[str], sections: list[dict[str, Any]]) -> None:
     for section in sections:
         flags = ",".join(section["flags"]) if section["flags"] else "-"
         lines.append(f"  - {section['name']} size={section['size']} entropy={section['entropy']} flags={flags}")
+    lines.append("")
+
+
+def _append_details(lines: list[str], details: dict[str, Any]) -> None:
+    if not details:
+        return
+    lines.append("Format details:")
+    for key, value in details.items():
+        if isinstance(value, list):
+            value = ", ".join(str(item) for item in value)
+        lines.append(f"  - {key}: {value}")
     lines.append("")
 
 

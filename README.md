@@ -35,6 +35,8 @@ The core CLI works with only the Python standard library. Optional dependencies 
 rev-inspector samples/example.sh --json
 ```
 
+PE files get dependency-free header parsing for architecture, subsystem, entry point, image base, file characteristics, section flags, and section entropy. Installing `pefile` adds richer PE import/export parsing.
+
 ## Optional web UI
 
 ```bash
