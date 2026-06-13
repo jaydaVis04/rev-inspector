@@ -7,6 +7,8 @@ const selectedSize = document.querySelector("#selected-size");
 const progressFill = document.querySelector("#progress-fill");
 const progressLabel = document.querySelector("#progress-label");
 const notes = document.querySelector("#analyst-notes");
+const navItems = Array.from(document.querySelectorAll(".nav-item[href^='#']"));
+let manualNavActiveUntil = 0;
 
 function formatBytes(bytes) {
   if (!bytes) return "0 bytes";
@@ -88,4 +90,53 @@ if (notes) {
   const key = notes.dataset.notesKey;
   notes.value = localStorage.getItem(key) || "";
   notes.addEventListener("input", () => localStorage.setItem(key, notes.value));
+}
+
+function setActiveNav(hash) {
+  navItems.forEach((item) => {
+    item.classList.toggle("active", item.getAttribute("href") === hash);
+  });
+}
+
+if (navItems.length) {
+  navItems.forEach((item) => {
+    item.addEventListener("click", () => {
+      manualNavActiveUntil = Date.now() + 1200;
+      setActiveNav(item.getAttribute("href"));
+    });
+  });
+
+  const observedSections = navItems
+    .map((item) => document.querySelector(item.getAttribute("href")))
+    .filter(Boolean);
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (Date.now() < manualNavActiveUntil) return;
+
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+      if (visible) {
+        setActiveNav(`#${visible.target.id}`);
+      }
+    },
+    {
+      rootMargin: "-96px 0px -55% 0px",
+      threshold: [0.15, 0.35, 0.6],
+    },
+  );
+
+  observedSections.forEach((section) => observer.observe(section));
+
+  if (window.location.hash) {
+    manualNavActiveUntil = Date.now() + 1200;
+    setActiveNav(window.location.hash);
+  }
+
+  window.addEventListener("hashchange", () => {
+    manualNavActiveUntil = Date.now() + 1200;
+    setActiveNav(window.location.hash);
+  });
 }

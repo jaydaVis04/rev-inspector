@@ -162,6 +162,8 @@ pre,
 
 .nav-item:hover,
 .nav-item:focus-visible {
+  border-left-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.025);
   color: var(--text-primary);
 }
 
