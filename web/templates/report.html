@@ -10,6 +10,11 @@
     <header class="topbar">
         <div class="topbar-brand">Rev Inspector</div>
         <div class="topbar-version">v0.1.0</div>
+        <div class="topbar-meta" aria-label="Report runtime controls">
+            <span>REPORT VIEW</span>
+            <span>LOCAL NOTES</span>
+            <span>STATIC ONLY</span>
+        </div>
         <div class="topbar-status">
             <span class="status-dot pass"></span>
             Report rendered
@@ -18,15 +23,23 @@
 
     <nav class="nav-rail" aria-label="Report navigation">
         <a class="rail-upload" href="/">Upload sample</a>
+        <div class="nav-section-label">Report</div>
         <a class="nav-item active" href="#fingerprint">Hashes & metadata</a>
         <a class="nav-item" href="#indicators">Extracted indicators</a>
         <a class="nav-item" href="#structure">Structure & imports</a>
         <a class="nav-item" href="#strings">Strings</a>
         <a class="nav-item" href="#risk-summary">Risk summary</a>
         <a class="nav-item" href="#notes">Analyst notes</a>
+        <div class="rail-footer">
+            <span>Risk</span>
+            <strong>{{ report.risk | upper }}</strong>
+        </div>
     </nav>
 
     <main class="workspace has-report">
+        {% set high_count = report.findings | selectattr("severity", "equalto", "high") | list | length %}
+        {% set medium_count = report.findings | selectattr("severity", "equalto", "medium") | list | length %}
+        {% set low_count = report.findings | selectattr("severity", "equalto", "low") | list | length %}
         <section class="report-strip" aria-label="Report summary">
             <div>
                 <h1 class="report-title">{{ filename }}</h1>
@@ -51,6 +64,15 @@
                     <dd class="mono">{{ analyzed_at }}</dd>
                 </div>
             </dl>
+        </section>
+
+        <section class="report-kpis" aria-label="Analysis counters">
+            <div><span>Indicators</span><strong class="mono">{{ report.findings | length }}</strong></div>
+            <div><span>Strings</span><strong class="mono">{{ report.string_count }}</strong></div>
+            <div><span>Entropy</span><strong class="mono">{{ report.entropy }}</strong></div>
+            <div><span>High</span><strong class="mono severity-text-high">{{ high_count }}</strong></div>
+            <div><span>Medium</span><strong class="mono severity-text-medium">{{ medium_count }}</strong></div>
+            <div><span>Low</span><strong class="mono severity-text-low">{{ low_count }}</strong></div>
         </section>
 
         <div class="report-layout">
@@ -230,9 +252,6 @@
                     <div><dt>Entropy</dt><dd class="mono">{{ report.entropy }}</dd></div>
                 </dl>
                 <div class="severity-bars" aria-label="Severity count bars">
-                    {% set high_count = report.findings | selectattr("severity", "equalto", "high") | list | length %}
-                    {% set medium_count = report.findings | selectattr("severity", "equalto", "medium") | list | length %}
-                    {% set low_count = report.findings | selectattr("severity", "equalto", "low") | list | length %}
                     <div><span>HIGH</span><i class="bar high" style="width: {{ high_count * 20 + 4 }}%"></i><b>{{ high_count }}</b></div>
                     <div><span>MED</span><i class="bar medium" style="width: {{ medium_count * 20 + 4 }}%"></i><b>{{ medium_count }}</b></div>
                     <div><span>LOW</span><i class="bar low" style="width: {{ low_count * 20 + 4 }}%"></i><b>{{ low_count }}</b></div>

@@ -8,3 +8,6 @@ build/
 uploads/*
 !uploads/.gitkeep
 .playwright-mcp/
+.env
+.env.*
+!.env.example

@@ -10,6 +10,11 @@
     <header class="topbar">
         <div class="topbar-brand">Rev Inspector</div>
         <div class="topbar-version">v0.1.0</div>
+        <div class="topbar-meta" aria-label="Runtime controls">
+            <span>STATIC ENGINE</span>
+            <span>LOCAL FILESTORE</span>
+            <span>50MB LIMIT</span>
+        </div>
         <div class="topbar-status">
             <span class="status-dot pass"></span>
             Backend ready
@@ -21,9 +26,14 @@
             <label class="rail-upload" for="rail-file">Upload sample</label>
             <input id="rail-file" class="sr-only" type="file" name="file" onchange="this.form.submit()">
         </form>
+        <div class="nav-section-label">Workspace</div>
         <a class="nav-item active" href="#intake">Intake</a>
         <a class="nav-item" href="#recent">Recent analyses</a>
         <a class="nav-item" href="#guardrails">Guardrails</a>
+        <div class="rail-footer">
+            <span>Execution</span>
+            <strong>Disabled</strong>
+        </div>
     </nav>
 
     <main class="workspace">
@@ -38,14 +48,26 @@
             <div class="alert" role="alert">{{ error }}</div>
             {% endif %}
 
-            <form id="upload-form" class="drop-zone" action="/analyze" method="post" enctype="multipart/form-data">
-                <label for="file" class="drop-label">
-                    <span class="drop-title">Choose file for analysis</span>
-                    <span class="drop-copy">Accepted: PE, ELF, Mach-O, APK, ZIP, scripts. Max {{ max_upload_mb }}MB. Nothing is executed.</span>
-                </label>
-                <input id="file" type="file" name="file" required>
-                <button class="button-primary" type="submit">Analyze</button>
-            </form>
+            <div class="intake-grid">
+                <form id="upload-form" class="drop-zone" action="/analyze" method="post" enctype="multipart/form-data">
+                    <label for="file" class="drop-label">
+                        <span class="drop-title">Choose file for analysis</span>
+                        <span class="drop-copy">Accepted: PE, ELF, Mach-O, APK, ZIP, scripts. Max {{ max_upload_mb }}MB. Nothing is executed.</span>
+                    </label>
+                    <input id="file" type="file" name="file" required>
+                    <button class="button-primary" type="submit">Analyze</button>
+                </form>
+
+                <aside class="capability-panel" aria-label="Enabled analysis capabilities">
+                    <p class="section-eyebrow">Enabled checks</p>
+                    <dl>
+                        <div><dt>File type</dt><dd>PE / ELF / Mach-O / APK / scripts / archives</dd></div>
+                        <div><dt>Metadata</dt><dd>Hashes, architecture, sections, imports where available</dd></div>
+                        <div><dt>Signals</dt><dd>URLs, IPs, paths, registry keys, commands, suspicious APIs</dd></div>
+                        <div><dt>Risk</dt><dd>Static indicators only, no execution verdicts</dd></div>
+                    </dl>
+                </aside>
+            </div>
 
             <div id="upload-state" class="upload-state" hidden>
                 <div class="upload-state-row">
@@ -64,6 +86,11 @@
                 <p class="section-eyebrow">History</p>
                 <h2 class="section-heading">Recent analyses</h2>
                 <p class="section-description">Current-session uploads only. Uploaded files remain local and are not exposed through the web server.</p>
+            </div>
+            <div class="panel-stat-row">
+                <div><span>Session files</span><strong>{{ recent_analyses | length }}</strong></div>
+                <div><span>Storage</span><strong>Local</strong></div>
+                <div><span>Network calls</span><strong>None</strong></div>
             </div>
             <table>
                 <caption>Recent local analyses</caption>
@@ -99,6 +126,12 @@
                 <p class="section-eyebrow">Guardrails</p>
                 <h2 class="section-heading">Security posture</h2>
                 <p class="section-description">Controls applied before a file reaches the analyzer.</p>
+            </div>
+            <div class="guardrail-strip" aria-label="Guardrail status summary">
+                <span><b>PASS</b> static read</span>
+                <span><b>PASS</b> sanitized upload</span>
+                <span><b>PASS</b> randomized path</span>
+                <span><b>PASS</b> security headers</span>
             </div>
             <table>
                 <caption>Upload and execution guardrails</caption>
