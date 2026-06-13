@@ -18,6 +18,8 @@ class AnalyzerFacadeTests(unittest.TestCase):
             self.assertTrue(report["sha256"])
             self.assertIn("network access", report["indicators"])
             self.assertIn("findings", report)
+            self.assertIn("hex_preview", report)
+            self.assertEqual(report["hex_preview"][0]["offset"], "00000000")
 
 
 if __name__ == "__main__":

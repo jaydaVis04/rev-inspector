@@ -6,6 +6,7 @@ const selectedFile = document.querySelector("#selected-file");
 const selectedSize = document.querySelector("#selected-size");
 const progressFill = document.querySelector("#progress-fill");
 const progressLabel = document.querySelector("#progress-label");
+const fileName = document.querySelector("#file-name");
 const notes = document.querySelector("#analyst-notes");
 const navItems = Array.from(document.querySelectorAll(".nav-item[href^='#']"));
 const copyButtons = Array.from(document.querySelectorAll("[data-copy]"));
@@ -20,12 +21,15 @@ function formatBytes(bytes) {
 }
 
 function showUploadState(file) {
-  if (!uploadState || !file) return;
-  selectedFile.textContent = file.name;
-  selectedSize.textContent = formatBytes(file.size);
-  progressFill.style.width = "0%";
-  progressLabel.textContent = "Preparing upload...";
-  uploadState.hidden = false;
+  if (!file) return;
+  if (fileName) fileName.textContent = `${file.name} (${formatBytes(file.size)})`;
+  if (uploadState) {
+    selectedFile.textContent = file.name;
+    selectedSize.textContent = formatBytes(file.size);
+    progressFill.style.width = "0%";
+    progressLabel.textContent = "Preparing upload...";
+    uploadState.hidden = false;
+  }
 }
 
 if (fileInput) {

@@ -27,6 +27,7 @@
         <a class="nav-item active" href="#fingerprint">Hashes & metadata</a>
         <a class="nav-item" href="#indicators">Extracted indicators</a>
         <a class="nav-item" href="#structure">Structure & imports</a>
+        <a class="nav-item" href="#hex-preview">Header preview</a>
         <a class="nav-item" href="#strings">Strings</a>
         <a class="nav-item" href="#risk-summary">Risk summary</a>
         <a class="nav-item" href="#notes">Analyst notes</a>
@@ -77,6 +78,20 @@
 
         <div class="report-layout">
             <div class="report-main">
+                <section class="panel triage-panel" aria-label="Triage overview">
+                    <div class="triage-grid">
+                        <div>
+                            <p class="section-eyebrow">Analyst summary</p>
+                            <h2 class="section-heading">{{ report.summary }}</h2>
+                        </div>
+                        <div class="triage-meter">
+                            <span>Entropy</span>
+                            <strong class="mono">{{ report.entropy }}</strong>
+                            <div class="entropy-track"><div class="entropy-fill" style="width: {{ (report.entropy / 8 * 100) | round(1) }}%"></div></div>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="fingerprint" class="panel">
                     <div class="section-header">
                         <p class="section-eyebrow">Fingerprint</p>
@@ -211,6 +226,37 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% endif %}
+                </section>
+
+                <section id="hex-preview" class="panel">
+                    <div class="section-header">
+                        <p class="section-eyebrow">Bytes</p>
+                        <h2 class="section-heading">Header preview</h2>
+                        <p class="section-description">First 256 bytes of the uploaded file. This is a static byte preview only.</p>
+                    </div>
+                    {% if report.hex_preview %}
+                    <table class="hex-table">
+                        <caption>Hex preview</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Offset</th>
+                                <th scope="col">Hex</th>
+                                <th scope="col">ASCII</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report.hex_preview %}
+                            <tr>
+                                <td class="mono">{{ row.offset }}</td>
+                                <td class="mono">{{ row.hex }}</td>
+                                <td class="mono">{{ row.ascii }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="empty">No bytes available for preview.</p>
                     {% endif %}
                 </section>
 

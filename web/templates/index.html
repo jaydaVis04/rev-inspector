@@ -54,8 +54,12 @@
                         <span class="drop-title">Choose file for analysis</span>
                         <span class="drop-copy">Accepted: PE, ELF, Mach-O, APK, ZIP, scripts. Max {{ max_upload_mb }}MB. Nothing is executed.</span>
                     </label>
-                    <input id="file" type="file" name="file" required>
-                    <button class="button-primary" type="submit">Analyze</button>
+                    <input id="file" class="sr-only" type="file" name="file" required>
+                    <div class="upload-controls">
+                        <label class="button-ghost" for="file">Choose file</label>
+                        <span id="file-name" class="selected-file-name">No file selected</span>
+                        <button class="button-primary" type="submit">Analyze</button>
+                    </div>
                 </form>
 
                 <aside class="capability-panel" aria-label="Enabled analysis capabilities">

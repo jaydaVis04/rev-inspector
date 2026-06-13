@@ -29,6 +29,7 @@ class WebGuiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Hashes &amp; metadata", response.text)
+        self.assertIn("Header preview", response.text)
         self.assertIn("network access", response.text)
 
 

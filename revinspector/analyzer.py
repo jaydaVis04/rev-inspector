@@ -18,7 +18,26 @@ def analyze_file(path: Path) -> dict[str, Any]:
     data["string_count"] = sum(len(values) for values in data["strings"].values())
     data["sample_strings"] = _sample_strings(data)
     data["indicators"] = [finding["value"] for finding in data["findings"]]
+    data["hex_preview"] = _hex_preview(path)
     return data
+
+
+def _hex_preview(path: Path, length: int = 256, width: int = 16) -> list[dict[str, str]]:
+    data = path.read_bytes()[:length]
+    rows = []
+    for offset in range(0, len(data), width):
+        chunk = data[offset : offset + width]
+        hex_bytes = " ".join(f"{byte:02x}" for byte in chunk)
+        ascii_text = "".join(chr(byte) if 32 <= byte <= 126 else "." for byte in chunk)
+        rows.append(
+            {
+                "offset": f"{offset:08x}",
+                "hex": hex_bytes,
+                "ascii": ascii_text,
+            }
+        )
+    return rows
+
 
 def _sample_strings(data: dict[str, Any], limit: int = 50) -> list[str]:
     strings: list[str] = []

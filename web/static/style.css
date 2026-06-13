@@ -383,6 +383,19 @@ input[type="file"] {
   font-size: var(--text-sm);
 }
 
+.upload-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.selected-file-name {
+  min-width: 220px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
 .button-primary,
 .button-ghost {
   width: fit-content;
@@ -722,6 +735,44 @@ tbody tr:hover th {
   align-items: start;
 }
 
+.triage-panel {
+  background:
+    linear-gradient(90deg, rgba(74, 127, 232, 0.08), transparent 48%),
+    var(--bg-surface);
+}
+
+.triage-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 20px;
+  align-items: center;
+}
+
+.triage-meter {
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-subtle);
+}
+
+.triage-meter span {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.triage-meter strong {
+  display: block;
+  margin: 4px 0 10px;
+  font-size: var(--text-lg);
+}
+
+.hex-table td:nth-child(2) {
+  word-spacing: 4px;
+}
+
 .report-kpis {
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
@@ -874,7 +925,8 @@ textarea {
 
   .report-layout,
   .report-strip,
-  .intake-grid {
+  .intake-grid,
+  .triage-grid {
     grid-template-columns: 1fr;
   }
 
