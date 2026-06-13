@@ -1,0 +1,1136 @@
+REV INSPECTOR PROJECT WALKTHROUGH
+================================
+
+This document explains the Rev Inspector project from bottom to top. It is meant to help you understand what was built, why each file exists, how data moves through the program, what the current tool can and cannot do, and what would make sense to build next.
+
+
+1. What this project is
+-----------------------
+
+Rev Inspector is a safe static-analysis assistant for learning reverse engineering and malware-analysis concepts.
+
+The important word is static.
+
+Static analysis means the tool looks at a file as data. It reads bytes, headers, strings, metadata, sections, imports, hashes, and other indicators. It does not run the file. It does not load the file as a program. It does not call the file. It does not execute unknown binaries.
+
+That matters because malware analysis becomes dangerous when unknown samples are executed. This project is deliberately scoped to defensive learning and inspection:
+
+- Detect what kind of file something appears to be.
+- Extract readable strings.
+- Categorize suspicious strings.
+- Calculate hashes.
+- Read binary metadata where possible.
+- Estimate entropy.
+- Identify static indicators such as networking APIs, process creation APIs, suspicious registry keys, and packed-looking sections.
+- Generate readable text, JSON, and HTML reports.
+
+The tool is not a malware sandbox. It is not an exploit tool. It is not an unpacker. It is not designed to bypass protections. It is a static inspection and learning project.
+
+
+2. Current repository layout
+----------------------------
+
+The current project looks like this:
+
+  README.md
+  PROJECT_WALKTHROUGH.txt
+  pyproject.toml
+  app.py
+  .gitignore
+
+  revinspector/
+    __init__.py
+    __main__.py
+    cli.py
+    disasm.py
+    entropy.py
+    filetype.py
+    hashes.py
+    imports.py
+    indicators.py
+    metadata.py
+    models.py
+    report.py
+    strings.py
+    yara_scan.py
+
+  rules/
+    suspicious_strings.yar
+
+  samples/
+    example.sh
+
+  tests/
+    fixtures.py
+    test_cli.py
+    test_filetype.py
+    test_report.py
+    test_strings.py
+
+Each area has a specific job.
+
+The root files define the project, installation metadata, documentation, and optional web entry point.
+
+The revinspector package contains the actual analysis code.
+
+The rules directory stores a starter YARA rule file.
+
+The samples directory stores a harmless example script for testing and demonstration.
+
+The tests directory stores standard-library unittest tests that verify the tool works without requiring downloaded dependencies.
+
+
+3. How to run it
+----------------
+
+From the repository root:
+
+  python3 -m revinspector samples/example.sh
+
+That prints a text report.
+
+To get JSON:
+
+  python3 -m revinspector samples/example.sh --json
+
+To write a standalone HTML report:
+
+  python3 -m revinspector samples/example.sh --html-out report.html
+
+You can combine JSON and HTML:
+
+  python3 -m revinspector samples/example.sh --json --html-out report.html
+
+That will write the HTML file and also print JSON to the terminal.
+
+To run the test suite:
+
+  python3 -m unittest discover -s tests
+
+The tests currently pass with only the Python standard library.
+
+
+4. The overall analysis flow
+----------------------------
+
+The main analysis flow starts in revinspector/report.py.
+
+The central function is:
+
+  analyze_file(path, yara_rules=None)
+
+That function is the pipeline coordinator. It does not do all the work itself. Instead, it calls specialized modules:
+
+  detect_file_type(path)
+  collect_metadata(path, file_type)
+  parse_imports_exports(path, file_type)
+  extract_strings(path)
+  categorize_strings(strings)
+  scan_yara(path, yara_rules)
+  file_entropy(path)
+  build_findings(imports, strings, sections, entropy, yara_matches)
+  risk_from_findings(findings)
+  summarize(findings)
+
+Then it puts the result into an AnalysisReport dataclass.
+
+In plain language, the tool does this:
+
+1. Resolve the sample path.
+2. Identify the file type.
+3. Collect format-specific metadata if possible.
+4. Parse imports and exports if supported.
+5. Extract readable strings from raw bytes.
+6. Categorize strings into URLs, IP addresses, commands, paths, registry keys, and suspicious APIs.
+7. Run YARA rules if yara-python is installed.
+8. Calculate entropy.
+9. Build findings from all the collected evidence.
+10. Assign a risk level.
+11. Generate a human-readable summary.
+12. Return one structured report object.
+
+That report object can then be rendered as text, JSON, or HTML.
+
+
+5. revinspector/models.py
+-------------------------
+
+This file defines the core data structures.
+
+It contains three dataclasses:
+
+  Finding
+  SectionInfo
+  AnalysisReport
+
+Finding represents one interesting indicator.
+
+Examples:
+
+  category: capability
+  value: network access
+  severity: medium
+  description: Networking APIs, URLs, or IP addresses were found.
+
+SectionInfo represents one binary section.
+
+Examples:
+
+  name: .text
+  size: 512
+  entropy: 7.1
+  virtual_address: 0x1000
+  flags: code, execute, read
+
+AnalysisReport is the full output structure.
+
+It stores:
+
+- File path
+- File type
+- File size
+- Hashes
+- Architecture
+- Format-specific details
+- Compiler hints
+- Sections
+- Imports
+- Exports
+- Categorized strings
+- YARA matches
+- Findings
+- Summary
+- Risk
+
+The report has a to_dict() method. That method converts dataclasses into dictionaries so JSON and HTML rendering can work cleanly.
+
+One detail: the dataclasses use slots=True. Slotted dataclasses do not have normal __dict__ attributes. That is why the code uses dataclasses.asdict() for nested dataclasses instead of trying to read object.__dict__.
+
+
+6. revinspector/filetype.py
+---------------------------
+
+This file detects the broad file type.
+
+It reads the first few bytes of the file and checks magic bytes and suffixes.
+
+Supported detection includes:
+
+- PE files: start with MZ
+- ELF files: start with 0x7F ELF
+- Mach-O files: known Mach-O magic values
+- APK files: ZIP structure plus .apk suffix
+- ZIP/archive files
+- Scripts: common script suffixes or shebang lines
+- Unknown files
+
+Examples:
+
+  MZ...       -> PE
+  \x7fELF...  -> ELF
+  #!/bin/sh   -> script
+  file.apk    -> APK
+  file.zip    -> archive
+
+This is intentionally simple and safe. It only reads bytes and metadata. It does not execute anything.
+
+
+7. revinspector/hashes.py
+-------------------------
+
+This file calculates file hashes.
+
+It returns:
+
+- MD5
+- SHA1
+- SHA256
+
+SHA256 is the most important for modern identification and sharing with defensive tools. MD5 and SHA1 are still commonly shown in malware-analysis reports because many datasets and older references include them.
+
+The function reads the file in chunks so it can handle larger files without loading everything into memory at once.
+
+Important safety note:
+
+Hashing a file is static. The bytes are read, but the file is not executed.
+
+
+8. revinspector/entropy.py
+--------------------------
+
+This file calculates Shannon entropy.
+
+Entropy is a rough measure of randomness.
+
+Low entropy data has patterns. Plain text is usually lower entropy. Zero-filled sections are very low entropy.
+
+High entropy data looks more random. Compressed, encrypted, or packed data often has higher entropy.
+
+The tool uses entropy in two ways:
+
+1. Whole-file entropy.
+2. Per-section entropy for formats that expose sections, especially PE files.
+
+High entropy does not prove something is malicious. It is only a clue. A compressed installer can have high entropy and be normal. Malware can have low entropy too. The report phrases this carefully as "may indicate compression, packing, or encrypted data."
+
+
+9. revinspector/strings.py
+--------------------------
+
+This file extracts and categorizes strings.
+
+It searches for:
+
+- ASCII strings
+- UTF-16LE strings
+
+It requires strings to be at least 4 characters by default.
+
+After extraction, strings are categorized with regular expressions.
+
+Categories include:
+
+- urls
+- ips
+- windows_paths
+- unix_paths
+- registry_keys
+- commands
+- suspicious_apis
+- other
+
+Examples:
+
+  https://example.invalid/payload -> urls
+  192.168.1.10                    -> ips
+  C:\Users\Public\drop.exe         -> windows_paths
+  /tmp/payload.bin                 -> unix_paths
+  HKCU\Software\...\Run            -> registry_keys
+  powershell                       -> commands
+  CreateRemoteThread               -> suspicious_apis
+
+String extraction is one of the most useful static-analysis techniques. Malware, installers, scripts, and normal programs often contain readable hints such as URLs, command names, file paths, registry keys, function names, and error messages.
+
+However, strings can be misleading. A string might appear in documentation, logging, unused code, or a decoy. The project treats them as indicators, not proof.
+
+
+10. revinspector/metadata.py
+----------------------------
+
+This file collects format-specific metadata.
+
+Currently it supports:
+
+- PE metadata
+- ELF metadata when pyelftools is installed
+- Mach-O metadata when macholib is installed
+
+The strongest current work is PE metadata.
+
+For PE files, the project has two paths:
+
+1. Use pefile if installed.
+2. Fall back to dependency-free PE header parsing.
+
+The fallback parser was added so the project can still produce useful PE information without requiring external packages.
+
+For PE files, it can report:
+
+- Architecture
+- PE format, such as PE32 or PE32+
+- Number of sections
+- Timestamp
+- Entry point
+- Image base
+- Subsystem
+- File characteristics
+- Section names
+- Section sizes
+- Section entropy
+- Section virtual addresses
+- Section flags
+
+PE architecture examples:
+
+  0x014C -> x86
+  0x8664 -> x86_64
+  0xAA64 -> ARM64
+
+PE subsystem examples:
+
+  2 -> windows_gui
+  3 -> windows_console
+
+PE section flags examples:
+
+  code
+  initialized_data
+  uninitialized_data
+  execute
+  read
+  write
+
+The PE fallback parser works by reading the PE headers directly:
+
+1. Read the DOS header.
+2. Read e_lfanew at offset 0x3C.
+3. Jump to the PE signature.
+4. Read the COFF file header.
+5. Read selected optional header fields.
+6. Walk the section table.
+7. Calculate entropy for each section's raw bytes.
+
+This is useful because it teaches how PE files are structured while staying safe.
+
+For ELF files, if pyelftools is installed, metadata includes:
+
+- Architecture
+- ELF type
+- Entry point
+- Endianness
+- Sections
+- Section entropy
+- Section flags
+
+For Mach-O files, if macholib is installed, metadata currently includes basic header count and architecture information.
+
+
+11. revinspector/imports.py
+---------------------------
+
+This file handles import/export parsing.
+
+Right now, import/export parsing is implemented for PE files when pefile is installed.
+
+For PE files, imports are returned in this form:
+
+  KERNEL32.dll!CreateProcessA
+  WININET.dll!InternetOpenUrlA
+
+Exports are returned as symbol names or ordinal names.
+
+Imports are important because they tell you what external APIs the binary may be able to call.
+
+Examples:
+
+  CreateProcessA       -> process creation capability
+  InternetOpenUrlA     -> network capability
+  WriteProcessMemory   -> possible injection capability
+  RegSetValueExA       -> registry modification capability
+
+The project currently returns empty imports if pefile is not installed. That is okay for now because the fallback PE parser focuses on headers and sections, not import table walking.
+
+
+12. revinspector/indicators.py
+------------------------------
+
+This file turns raw evidence into findings.
+
+It looks at:
+
+- Imports
+- Categorized strings
+- Sections
+- File entropy
+- YARA matches
+
+Then it creates Finding objects.
+
+Current indicator groups include:
+
+Network indicators:
+
+- InternetOpen
+- InternetOpenUrl
+- URLDownloadToFile
+- WinHttp
+- WinInet
+- socket
+- connect
+- URLs
+- IP addresses
+
+Process and command indicators:
+
+- CreateProcess
+- WinExec
+- ShellExecute
+- CreateRemoteThread
+- OpenProcess
+- command strings like curl, wget, powershell, cmd.exe
+
+Possible injection indicators:
+
+- VirtualAllocEx
+- WriteProcessMemory
+- CreateRemoteThread
+- SetWindowsHookEx
+
+Persistence indicators:
+
+- CurrentVersion\Run
+- schtasks
+- LaunchAgents
+- systemd
+- crontab
+- registry key strings
+
+File I/O indicators:
+
+- CreateFile
+- WriteFile
+- ReadFile
+- /tmp/
+- AppData
+- file path strings
+
+Packing or obfuscation indicators:
+
+- High whole-file entropy
+- High section entropy
+
+Section indicators:
+
+- Writable and executable section
+- Executable code in a section with an unusual name
+
+Risk is calculated from findings:
+
+- Any high severity finding -> high risk
+- Two or more medium findings -> high risk
+- One medium finding -> medium risk
+- Otherwise -> low risk
+
+This is intentionally simple. It is not a machine-learning classifier or a final verdict. It is a beginner-friendly scoring model that explains why the tool is concerned.
+
+
+13. revinspector/yara_scan.py
+-----------------------------
+
+This file runs YARA rules if yara-python is installed.
+
+If yara-python is not installed, it safely returns no matches.
+
+Default rule path:
+
+  rules/suspicious_strings.yar
+
+YARA is a rule language used heavily in malware research and detection engineering. It lets you define patterns that match files.
+
+The starter YARA rule looks for educational static indicators such as:
+
+- http://
+- https://
+- powershell
+- curl
+- wget
+- CreateProcess
+- VirtualAlloc
+- WriteProcessMemory
+- CreateRemoteThread
+- Windows Run registry key strings
+
+Again, a YARA match is not proof of malware. It means the file matched a pattern worth reviewing.
+
+
+14. revinspector/disasm.py
+--------------------------
+
+This file contains an early disassembly preview helper.
+
+It uses capstone if capstone is installed.
+
+Currently, it is not wired deeply into the main report. It is a foundation for future work.
+
+Disassembly means turning machine code bytes into assembly instructions. This is useful for reverse engineering, but it requires careful architecture handling and good UI. For now, the project has the helper in place without making disassembly the main focus.
+
+Future improvements could include:
+
+- Disassemble only executable sections.
+- Show side-by-side hex and assembly.
+- Add function boundary guesses.
+- Add a call graph.
+
+
+15. revinspector/report.py
+--------------------------
+
+This is one of the most important files.
+
+It does two jobs:
+
+1. Coordinates analysis through analyze_file().
+2. Renders reports in multiple formats.
+
+The renderers are:
+
+  to_text(report)
+  to_json(report)
+  to_html(report)
+
+Text output is for humans in the terminal.
+
+JSON output is for tools, automation, or future UI work.
+
+HTML output is for a readable standalone report that can be opened in a browser.
+
+The text report includes:
+
+- File
+- Type
+- Size
+- SHA256
+- Architecture
+- Risk
+- Summary
+- Compiler hints
+- Format details
+- Sections
+- Imports
+- Exports
+- Strings
+- YARA matches
+- Indicators
+
+The JSON report includes the full structured dictionary.
+
+The HTML report includes:
+
+- Summary grid
+- Risk badge
+- Static-analysis safety note
+- Indicators list
+- Metadata table
+- Sections table
+- Imports
+- Exports
+- Categorized strings
+- YARA matches
+
+The HTML is standalone. The CSS is embedded in the file. There is no external JavaScript and no need to upload anything elsewhere.
+
+
+16. revinspector/cli.py
+-----------------------
+
+This file defines the command-line interface.
+
+The CLI is exposed in two ways:
+
+1. Python module execution:
+
+   python3 -m revinspector samples/example.sh
+
+2. Installed console script:
+
+   rev-inspector samples/example.sh
+
+The parser supports:
+
+  sample
+  --json
+  --html-out
+  --rules
+
+sample is the file to inspect.
+
+--json prints JSON instead of text.
+
+--html-out writes a standalone HTML report.
+
+--rules lets the user pass a custom YARA rules file.
+
+The CLI validates:
+
+- The sample exists.
+- The sample is a file.
+- The rules file exists if provided.
+
+Then it calls analyze_file().
+
+
+17. revinspector/__main__.py
+----------------------------
+
+This file allows:
+
+  python3 -m revinspector
+
+to work.
+
+It imports main from cli.py and exits with its return code.
+
+
+18. app.py
+----------
+
+This file serves two purposes.
+
+If FastAPI is installed, it exposes a small web API:
+
+  GET /
+  GET /health
+  POST /analyze
+
+The /analyze endpoint accepts an uploaded file, writes it to a temporary file, runs static analysis, returns JSON, and then the temporary file is removed by the operating system cleanup flow for the temporary file handle.
+
+The uploaded file is not executed.
+
+If FastAPI is not installed and you run:
+
+  python3 app.py
+
+it falls back to the CLI behavior.
+
+To run the optional web API:
+
+  pip install -e ".[web]"
+  uvicorn app:app --reload
+
+Then visit:
+
+  http://127.0.0.1:8000/docs
+
+The web API is intentionally small. At this stage, the CLI and report generation are more important than building a large web application.
+
+
+19. pyproject.toml
+------------------
+
+This file defines the Python project metadata.
+
+It includes:
+
+- Project name: rev-inspector
+- Version: 0.1.0
+- Description
+- Python requirement
+- Optional dependencies
+- Console script entry point
+
+Core dependencies are intentionally empty right now. That means the core tool works with only the Python standard library.
+
+Optional dependency groups:
+
+analysis:
+
+- capstone
+- macholib
+- pefile
+- pyelftools
+- yara-python
+
+web:
+
+- fastapi
+- python-multipart
+- uvicorn
+
+dev:
+
+- pytest
+
+Even though pytest is listed for developers, the current tests use unittest so they run without needing pytest installed.
+
+
+20. rules/suspicious_strings.yar
+--------------------------------
+
+This is a starter YARA rule.
+
+It is intentionally educational and simple.
+
+It matches strings commonly associated with networking, command execution, injection APIs, and persistence locations.
+
+Examples:
+
+  http://
+  https://
+  powershell
+  curl
+  wget
+  CreateProcess
+  VirtualAlloc
+  WriteProcessMemory
+  CreateRemoteThread
+  \Software\Microsoft\Windows\CurrentVersion\Run
+
+The rule is not claiming every file with those strings is malicious. It is saying those strings are worth reviewing.
+
+
+21. samples/example.sh
+----------------------
+
+This is a harmless sample script.
+
+It contains:
+
+- A shell shebang
+- A curl command
+- A URL
+- A /tmp path
+- A Windows Run registry key string
+
+The point is to give the analyzer something safe to inspect.
+
+When analyzed, it triggers:
+
+- Script file type
+- URL extraction
+- Unix path extraction
+- Registry key extraction
+- Command extraction
+- Network access finding
+- Process or command execution finding
+- Persistence-related string finding
+- File I/O finding
+
+The sample is not malware. It is a tiny text file designed to exercise the static indicators.
+
+
+22. tests/
+----------
+
+The tests verify the core behavior.
+
+tests/test_filetype.py checks:
+
+- Script detection from shebang
+- PE detection
+- ELF detection
+
+tests/test_strings.py checks:
+
+- URL categorization
+- Suspicious API categorization
+- Registry key categorization
+- Windows path categorization
+
+tests/test_report.py checks:
+
+- End-to-end script analysis
+- Text output
+- JSON output
+- HTML output
+- Dependency-free PE header parsing
+
+tests/test_cli.py checks:
+
+- CLI JSON output
+- CLI HTML report writing
+
+tests/fixtures.py contains a synthetic PE32 fixture builder.
+
+The synthetic PE fixture is important. It creates a minimal PE-like byte sequence with enough structure to test PE parsing. It is not a real malware sample and is not meant to be executed. It is just bytes for parser tests.
+
+The current test command is:
+
+  python3 -m unittest discover -s tests
+
+At the time this walkthrough was written, there are 8 passing tests.
+
+
+23. What happened during the build
+----------------------------------
+
+The repository started with only a tiny README and Git remote.
+
+The first work created the project scaffold:
+
+- README
+- pyproject.toml
+- revinspector package
+- rules directory
+- samples directory
+- app.py
+
+Then the core pipeline was added:
+
+- File type detection
+- Hashing
+- Entropy calculation
+- String extraction
+- String categorization
+- Optional import parsing
+- Optional metadata parsing
+- Optional YARA scanning
+- Indicator generation
+- Report rendering
+- CLI
+
+Then tests were added.
+
+The first test attempt used pytest, but pytest was not installed in the environment. The tests were converted to standard-library unittest so the project can be verified without downloading anything.
+
+Then the optional FastAPI entry point was added.
+
+Then standalone HTML reports were added with:
+
+  --html-out report.html
+
+During HTML preview, malformed list markup was noticed and fixed before committing.
+
+Then dependency-free PE metadata parsing was added.
+
+During that work, generated __pycache__ files that had accidentally been included in an earlier commit were removed from Git tracking. They are now ignored by .gitignore.
+
+
+24. Git commits created during the build
+----------------------------------------
+
+These are the meaningful commits currently on the project branch:
+
+  c2a0783 Scaffold static reverse engineering assistant
+  205da63 Build core static analysis pipeline
+  3dbc84c Add static analysis smoke tests
+  cea8f65 Add optional web analysis entrypoint
+  7cc8d88 Add standalone HTML reports
+  d4fd6f3 Add dependency-free PE metadata parsing
+
+This walkthrough is being added after those commits.
+
+
+25. Example output explained
+----------------------------
+
+When running:
+
+  python3 -m revinspector samples/example.sh
+
+The report shows:
+
+  File
+
+The absolute path to the sample.
+
+  Type
+
+Detected file type. For example.sh, this is script.
+
+  Size
+
+Size in bytes.
+
+  SHA256
+
+The SHA256 hash. This identifies the exact file contents.
+
+  Architecture
+
+For scripts this is unknown. For PE files this can be x86, x86_64, ARM64, etc.
+
+  Risk
+
+The simple risk score produced from findings.
+
+  Summary
+
+A plain-English sentence based on detected capabilities.
+
+  Strings
+
+Categorized extracted strings.
+
+  Indicators
+
+The findings that explain why the file is interesting.
+
+For the example script, the risk is high because it has several medium indicators: networking, command execution, and persistence-related strings.
+
+That does not mean the sample is malware. It means the static indicators look like things a human analyst should review.
+
+
+26. Safety model
+----------------
+
+The project safety model is:
+
+- Read files as bytes.
+- Parse headers and metadata.
+- Extract strings.
+- Calculate hashes and entropy.
+- Generate reports.
+- Do not execute samples.
+- Do not unpack commercial protected software.
+- Do not bypass protections.
+- Do not perform exploitation.
+- Do not call suspicious code.
+- Do not run unknown binaries.
+
+The FastAPI upload endpoint also follows this model. It saves an uploaded file temporarily for static reading, analyzes it, and returns JSON. It does not execute it.
+
+
+27. Current limitations
+-----------------------
+
+This is a strong first version, but it is still early.
+
+Important limitations:
+
+- PE import parsing requires pefile.
+- ELF parsing requires pyelftools.
+- Mach-O parsing requires macholib.
+- YARA scanning requires yara-python.
+- Disassembly helper exists but is not fully integrated into reports.
+- APK inspection is only detected as a file type right now; manifest and permission parsing are not built yet.
+- Archive inspection is not built yet.
+- HTML report is static and simple.
+- Risk scoring is heuristic and intentionally basic.
+- No visual call graph yet.
+- No import table explorer UI yet.
+- No side-by-side disassembly view yet.
+- No YARA rule editor yet.
+
+These limitations are normal for the current stage. The foundation is there.
+
+
+28. Best next improvements
+--------------------------
+
+The most useful next improvements would be:
+
+1. Archive and APK inspection
+
+Safely list archive contents, detect nested executables, and inspect APK metadata such as permissions and native libraries.
+
+2. PE import fallback parser
+
+Walk the PE import table without requiring pefile. That would make PE analysis much stronger with no mandatory dependencies.
+
+3. Better HTML report navigation
+
+Add collapsible sections, search/filter for strings and imports, and a cleaner summary table.
+
+4. Disassembly preview
+
+Use capstone to disassemble executable sections when installed, with strict byte limits.
+
+5. YARA workflow
+
+Add commands to validate rules and test rules against samples.
+
+Example future commands:
+
+  rev-inspector rules validate rules/suspicious_strings.yar
+  rev-inspector rules test samples/example.sh
+
+6. Import capability mapping
+
+Group imports by capability:
+
+  Networking
+  File I/O
+  Registry
+  Process
+  Memory
+  Crypto
+  Service control
+
+7. Safer sample corpus
+
+Add generated harmless binary fixtures for PE and ELF parser tests.
+
+
+29. How to think about the project as a learning tool
+-----------------------------------------------------
+
+This project teaches reverse-engineering concepts by making static signals visible.
+
+When you inspect a binary manually, you often ask:
+
+- What file format is this?
+- What architecture is it built for?
+- What sections does it have?
+- Do the section names look normal?
+- Are any sections high entropy?
+- Is anything writable and executable?
+- What imports does it use?
+- Does it mention URLs or IP addresses?
+- Does it reference persistence locations?
+- Does it call process creation APIs?
+- Does it call memory injection APIs?
+- Does it contain suspicious commands?
+- Do YARA rules match?
+- Can I summarize what this file appears capable of?
+
+Rev Inspector automates the first pass over those questions.
+
+It does not replace a human analyst. It helps organize the first look.
+
+
+30. Mental model of the code
+----------------------------
+
+Think of the project as layers.
+
+Lowest layer:
+
+  File bytes
+
+Utility layer:
+
+  filetype.py
+  hashes.py
+  entropy.py
+  strings.py
+
+Format parsing layer:
+
+  metadata.py
+  imports.py
+  yara_scan.py
+  disasm.py
+
+Interpretation layer:
+
+  indicators.py
+
+Data model layer:
+
+  models.py
+
+Output layer:
+
+  report.py
+
+Interface layer:
+
+  cli.py
+  app.py
+
+Tests:
+
+  tests/
+
+The pipeline reads bytes at the bottom, turns those bytes into facts, turns facts into findings, and turns findings into reports.
+
+
+31. Why the project is legitimate
+---------------------------------
+
+This is a legitimate defensive reverse-engineering project because it focuses on:
+
+- Static analysis
+- Education
+- Safe inspection
+- Defensive indicators
+- Transparent reporting
+- Harmless tests and samples
+
+It avoids:
+
+- Running malware
+- Building malware
+- Evading detection
+- Exploiting software
+- Bypassing protections
+- Unpacking protected commercial software
+
+The tool is useful for learning the same first-pass analysis workflow used in malware triage, incident response, and reverse-engineering labs.
+
+
+32. One-sentence summary
+------------------------
+
+Rev Inspector is a static analysis pipeline that reads a file safely, identifies what it is, extracts metadata and strings, flags suspicious indicators, scores the risk heuristically, and renders the result as text, JSON, or HTML without ever executing the sample.
+
