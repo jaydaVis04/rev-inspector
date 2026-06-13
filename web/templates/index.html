@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rev Inspector</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="container">
+        <section class="hero">
+            <p class="eyebrow">Static analysis only</p>
+            <h1>Rev Inspector</h1>
+            <p>Upload a binary, script, APK, or archive for local inspection. The file is read as bytes and is never executed.</p>
+        </section>
+
+        <section class="upload-panel">
+            <form action="/analyze" method="post" enctype="multipart/form-data">
+                <label for="file">Choose a sample</label>
+                <div class="upload-row">
+                    <input id="file" type="file" name="file" required>
+                    <button type="submit">Analyze</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="feature-grid">
+            <div>
+                <h2>File facts</h2>
+                <p>Type, size, hashes, architecture, and format details.</p>
+            </div>
+            <div>
+                <h2>Static indicators</h2>
+                <p>URLs, IPs, paths, commands, registry keys, suspicious APIs, and entropy signals.</p>
+            </div>
+            <div>
+                <h2>Binary structure</h2>
+                <p>Sections, imports, exports, YARA matches, and risk summary when available.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

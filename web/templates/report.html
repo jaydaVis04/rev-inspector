@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Analysis Report</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="container">
+        <nav class="top-nav">
+            <a href="/">Analyze another file</a>
+        </nav>
+
+        <section class="hero compact">
+            <p class="eyebrow">Analysis report</p>
+            <h1>{{ filename }}</h1>
+            <p>{{ report.summary }}</p>
+        </section>
+
+        <section class="summary-grid">
+            <div>
+                <span>Risk</span>
+                <strong class="risk risk-{{ report.risk }}">{{ report.risk | title }}</strong>
+            </div>
+            <div>
+                <span>File type</span>
+                <strong>{{ report.file_type }}</strong>
+            </div>
+            <div>
+                <span>Size</span>
+                <strong>{{ report.size_bytes }} bytes</strong>
+            </div>
+            <div>
+                <span>Architecture</span>
+                <strong>{{ report.architecture or "unknown" }}</strong>
+            </div>
+            <div class="wide">
+                <span>SHA256</span>
+                <code>{{ report.sha256 }}</code>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Indicators</h2>
+            {% if report.findings %}
+                <ul class="findings">
+                    {% for finding in report.findings %}
+                        <li>
+                            <span class="badge {{ finding.severity }}">{{ finding.severity }}</span>
+                            <strong>{{ finding.value }}</strong>
+                            <span>{{ finding.category }}</span>
+                            <p>{{ finding.description }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="empty">No suspicious indicators found by the current rules.</p>
+            {% endif %}
+        </section>
+
+        {% if report.details %}
+        <section class="card">
+            <h2>Format Details</h2>
+            <table>
+                {% for key, value in report.details.items() %}
+                <tr>
+                    <th>{{ key.replace("_", " ") | title }}</th>
+                    <td>{{ value if value is string else value | join(", ") if value is sequence else value }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </section>
+        {% endif %}
+
+        {% if report.sections %}
+        <section class="card">
+            <h2>Sections</h2>
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Entropy</th>
+                    <th>Flags</th>
+                    <th>Virtual address</th>
+                </tr>
+                {% for section in report.sections %}
+                <tr>
+                    <td>{{ section.name }}</td>
+                    <td>{{ section.size }}</td>
+                    <td>{{ section.entropy }}</td>
+                    <td>{{ section.flags | join(", ") if section.flags else "-" }}</td>
+                    <td>{{ section.virtual_address or "-" }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </section>
+        {% endif %}
+
+        {% if report.imports %}
+        <section class="card">
+            <h2>Imports</h2>
+            <ul class="code-list">
+                {% for item in report.imports[:100] %}
+                    <li><code>{{ item }}</code></li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        <section class="card">
+            <h2>Strings</h2>
+            {% if report.strings %}
+                {% for category, values in report.strings.items() %}
+                    {% if category != "other" %}
+                    <h3>{{ category.replace("_", " ") | title }}</h3>
+                    <ul class="code-list">
+                        {% for value in values[:50] %}
+                            <li><code>{{ value }}</code></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <p class="empty">No readable strings found.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

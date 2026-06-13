@@ -40,11 +40,13 @@ PE files get dependency-free header parsing for architecture, subsystem, entry p
 ## Optional web UI
 
 ```bash
-pip install -e ".[web]"
-uvicorn app:app --reload
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn web.app:app --reload
 ```
 
-Open `http://127.0.0.1:8000` and upload a sample for static inspection. The server writes uploads to a temporary file only long enough to analyze them and never executes them.
+Open `http://127.0.0.1:8000` and upload a sample for static inspection. The server stores uploads under `uploads/` for local review and never executes them.
 
 ```json
 {
