@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -47,12 +47,12 @@ class AnalysisReport:
             "hashes": self.hashes,
             "architecture": self.architecture,
             "compiler_hints": self.compiler_hints,
-            "sections": [section.__dict__ for section in self.sections],
+            "sections": [asdict(section) for section in self.sections],
             "imports": self.imports,
             "exports": self.exports,
             "strings": self.strings,
             "yara_matches": self.yara_matches,
-            "findings": [finding.__dict__ for finding in self.findings],
+            "findings": [asdict(finding) for finding in self.findings],
             "summary": self.summary,
             "risk": self.risk,
         }
