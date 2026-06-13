@@ -15,6 +15,19 @@ except ImportError:
 if FastAPI is not None:
     app = FastAPI(title="Rev Inspector", description="Static analysis only. Uploaded files are not executed.")
 
+    @app.get("/")
+    async def index():
+        return {
+            "name": "Rev Inspector",
+            "scope": "static analysis only",
+            "upload_endpoint": "/analyze",
+            "docs": "/docs",
+        }
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
+
     @app.post("/analyze")
     async def analyze_upload(sample: UploadFile = File(...)):
         suffix = Path(sample.filename or "sample.bin").suffix

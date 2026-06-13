@@ -34,6 +34,15 @@ The core CLI works with only the Python standard library. Optional dependencies 
 rev-inspector samples/example.sh --json
 ```
 
+## Optional web UI
+
+```bash
+pip install -e ".[web]"
+uvicorn app:app --reload
+```
+
+Open `http://127.0.0.1:8000` and upload a sample for static inspection. The server writes uploads to a temporary file only long enough to analyze them and never executes them.
+
 ```json
 {
   "file": "samples/example.sh",
