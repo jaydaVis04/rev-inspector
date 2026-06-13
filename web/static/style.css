@@ -687,6 +687,34 @@ tbody tr:hover th {
   color: var(--text-primary);
 }
 
+.copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.copy-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.copy-button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  padding: 3px 7px;
+}
+
+.copy-button:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
 .report-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;

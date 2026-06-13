@@ -16,7 +16,7 @@ class WebGuiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Rev Inspector", response.text)
-        self.assertIn("Static analysis only", response.text)
+        self.assertIn("Static analysis workbench", response.text)
 
     def test_upload_report_page(self) -> None:
         from web.app import app
@@ -28,7 +28,7 @@ class WebGuiTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Analysis Report", response.text)
+        self.assertIn("Hashes &amp; metadata", response.text)
         self.assertIn("network access", response.text)
 
 

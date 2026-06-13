@@ -8,6 +8,7 @@ const progressFill = document.querySelector("#progress-fill");
 const progressLabel = document.querySelector("#progress-label");
 const notes = document.querySelector("#analyst-notes");
 const navItems = Array.from(document.querySelectorAll(".nav-item[href^='#']"));
+const copyButtons = Array.from(document.querySelectorAll("[data-copy]"));
 let manualNavActiveUntil = 0;
 
 function formatBytes(bytes) {
@@ -91,6 +92,26 @@ if (notes) {
   notes.value = localStorage.getItem(key) || "";
   notes.addEventListener("input", () => localStorage.setItem(key, notes.value));
 }
+
+copyButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const value = button.dataset.copy || "";
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(value);
+      button.textContent = "Copied";
+      setTimeout(() => {
+        button.textContent = "Copy";
+      }, 1400);
+    } catch {
+      button.textContent = "Copy failed";
+      setTimeout(() => {
+        button.textContent = "Copy";
+      }, 1800);
+    }
+  });
+});
 
 function setActiveNav(hash) {
   navItems.forEach((item) => {

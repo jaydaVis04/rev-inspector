@@ -43,10 +43,10 @@ PE files get dependency-free header parsing for architecture, subsystem, entry p
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn web.app:app --reload
+uvicorn web.app:app --reload --port 8001
 ```
 
-Open `http://127.0.0.1:8000` for the local workbench UI. It uses a fixed topbar, left report rail, dense analysis tables, upload progress, current-session recent analyses, local analyst notes, and explicit static-analysis guardrails. The server stores uploads under `uploads/` for local review and never executes them.
+Open `http://127.0.0.1:8001` for the local workbench UI. Port 8000 is commonly used by other local tools, so 8001 is the documented default for this project. The UI uses a fixed topbar, left report rail, dense analysis tables, upload progress, current-session recent analyses, local analyst notes, and explicit static-analysis guardrails. The server stores uploads under `uploads/` for local review and never executes them.
 
 ```json
 {

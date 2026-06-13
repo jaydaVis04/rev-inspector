@@ -53,11 +53,11 @@
             <dl class="hash-strip">
                 <div>
                     <dt>MD5</dt>
-                    <dd class="mono">{{ report.hashes.md5 }}</dd>
+                    <dd class="mono copy-row"><span>{{ report.hashes.md5 }}</span><button class="copy-button" type="button" data-copy="{{ report.hashes.md5 }}" aria-label="Copy MD5 hash">Copy</button></dd>
                 </div>
                 <div>
                     <dt>SHA-256</dt>
-                    <dd class="mono">{{ report.sha256 }}</dd>
+                    <dd class="mono copy-row"><span>{{ report.sha256 }}</span><button class="copy-button" type="button" data-copy="{{ report.sha256 }}" aria-label="Copy SHA-256 hash">Copy</button></dd>
                 </div>
                 <div>
                     <dt>Analyzed</dt>
@@ -90,9 +90,9 @@
                             <tr><th scope="row">File type</th><td>{{ report.file_type }}</td></tr>
                             <tr><th scope="row">Architecture</th><td>{{ report.architecture or "unknown" }}</td></tr>
                             <tr><th scope="row">File size</th><td class="mono">{{ report.size_bytes }} bytes</td></tr>
-                            <tr><th scope="row">MD5</th><td class="mono">{{ report.hashes.md5 }}</td></tr>
-                            <tr><th scope="row">SHA-1</th><td class="mono">{{ report.hashes.sha1 }}</td></tr>
-                            <tr><th scope="row">SHA-256</th><td class="mono">{{ report.sha256 }}</td></tr>
+                            <tr><th scope="row">MD5</th><td class="mono copy-row"><span>{{ report.hashes.md5 }}</span><button class="copy-button" type="button" data-copy="{{ report.hashes.md5 }}" aria-label="Copy MD5 hash">Copy</button></td></tr>
+                            <tr><th scope="row">SHA-1</th><td class="mono copy-row"><span>{{ report.hashes.sha1 }}</span><button class="copy-button" type="button" data-copy="{{ report.hashes.sha1 }}" aria-label="Copy SHA-1 hash">Copy</button></td></tr>
+                            <tr><th scope="row">SHA-256</th><td class="mono copy-row"><span>{{ report.sha256 }}</span><button class="copy-button" type="button" data-copy="{{ report.sha256 }}" aria-label="Copy SHA-256 hash">Copy</button></td></tr>
                             <tr>
                                 <th scope="row">Entropy</th>
                                 <td>
