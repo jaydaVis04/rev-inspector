@@ -68,6 +68,6 @@ app.py
 ## Development
 
 ```bash
-python3 -m pytest
+python3 -m unittest discover -s tests
 python3 -m revinspector samples/example.sh
 ```
