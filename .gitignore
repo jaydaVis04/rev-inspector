@@ -7,3 +7,4 @@ dist/
 build/
 uploads/*
 !uploads/.gitkeep
+.playwright-mcp/

@@ -3,128 +3,248 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Analysis Report</title>
+    <title>{{ filename }} - Rev Inspector</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <main class="container">
-        <nav class="top-nav">
-            <a href="/">Analyze another file</a>
-        </nav>
+    <header class="topbar">
+        <div class="topbar-brand">Rev Inspector</div>
+        <div class="topbar-version">v0.1.0</div>
+        <div class="topbar-status">
+            <span class="status-dot pass"></span>
+            Report rendered
+        </div>
+    </header>
 
-        <section class="hero compact">
-            <p class="eyebrow">Analysis report</p>
-            <h1>{{ filename }}</h1>
-            <p>{{ report.summary }}</p>
-        </section>
+    <nav class="nav-rail" aria-label="Report navigation">
+        <a class="rail-upload" href="/">Upload sample</a>
+        <a class="nav-item active" href="#fingerprint">Hashes & metadata</a>
+        <a class="nav-item" href="#indicators">Extracted indicators</a>
+        <a class="nav-item" href="#structure">Structure & imports</a>
+        <a class="nav-item" href="#strings">Strings</a>
+        <a class="nav-item" href="#risk-summary">Risk summary</a>
+        <a class="nav-item" href="#notes">Analyst notes</a>
+    </nav>
 
-        <section class="summary-grid">
+    <main class="workspace has-report">
+        <section class="report-strip" aria-label="Report summary">
             <div>
-                <span>Risk</span>
-                <strong class="risk risk-{{ report.risk }}">{{ report.risk | title }}</strong>
+                <h1 class="report-title">{{ filename }}</h1>
+                <div class="tag-row">
+                    <span class="tag">{{ report.file_type }}</span>
+                    <span class="tag">{{ report.architecture or "unknown architecture" }}</span>
+                    <span class="tag">{{ report.size_bytes }} bytes</span>
+                    <span class="tag severity-{{ report.risk }}">{{ report.risk | upper }}</span>
+                </div>
             </div>
-            <div>
-                <span>File type</span>
-                <strong>{{ report.file_type }}</strong>
-            </div>
-            <div>
-                <span>Size</span>
-                <strong>{{ report.size_bytes }} bytes</strong>
-            </div>
-            <div>
-                <span>Architecture</span>
-                <strong>{{ report.architecture or "unknown" }}</strong>
-            </div>
-            <div class="wide">
-                <span>SHA256</span>
-                <code>{{ report.sha256 }}</code>
-            </div>
+            <dl class="hash-strip">
+                <div>
+                    <dt>MD5</dt>
+                    <dd class="mono">{{ report.hashes.md5 }}</dd>
+                </div>
+                <div>
+                    <dt>SHA-256</dt>
+                    <dd class="mono">{{ report.sha256 }}</dd>
+                </div>
+                <div>
+                    <dt>Analyzed</dt>
+                    <dd class="mono">{{ analyzed_at }}</dd>
+                </div>
+            </dl>
         </section>
 
-        <section class="card">
-            <h2>Indicators</h2>
-            {% if report.findings %}
-                <ul class="findings">
-                    {% for finding in report.findings %}
-                        <li>
-                            <span class="badge {{ finding.severity }}">{{ finding.severity }}</span>
-                            <strong>{{ finding.value }}</strong>
-                            <span>{{ finding.category }}</span>
-                            <p>{{ finding.description }}</p>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="empty">No suspicious indicators found by the current rules.</p>
-            {% endif %}
-        </section>
+        <div class="report-layout">
+            <div class="report-main">
+                <section id="fingerprint" class="panel">
+                    <div class="section-header">
+                        <p class="section-eyebrow">Fingerprint</p>
+                        <h2 class="section-heading">Hashes & metadata</h2>
+                        <p class="section-description">Basic facts used to identify the sample and orient follow-up analysis.</p>
+                    </div>
+                    <table>
+                        <caption>File hashes and metadata</caption>
+                        <tbody>
+                            <tr><th scope="row">File name</th><td class="mono">{{ filename }}</td></tr>
+                            <tr><th scope="row">File type</th><td>{{ report.file_type }}</td></tr>
+                            <tr><th scope="row">Architecture</th><td>{{ report.architecture or "unknown" }}</td></tr>
+                            <tr><th scope="row">File size</th><td class="mono">{{ report.size_bytes }} bytes</td></tr>
+                            <tr><th scope="row">MD5</th><td class="mono">{{ report.hashes.md5 }}</td></tr>
+                            <tr><th scope="row">SHA-1</th><td class="mono">{{ report.hashes.sha1 }}</td></tr>
+                            <tr><th scope="row">SHA-256</th><td class="mono">{{ report.sha256 }}</td></tr>
+                            <tr>
+                                <th scope="row">Entropy</th>
+                                <td>
+                                    <div class="entropy-cell">
+                                        <div class="entropy-track"><div class="entropy-fill" style="width: {{ (report.entropy / 8 * 100) | round(1) }}%"></div></div>
+                                        <span class="mono">{{ report.entropy }}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% for key, value in report.details.items() %}
+                            <tr>
+                                <th scope="row">{{ key.replace("_", " ") | title }}</th>
+                                <td>{{ value if value is string else value | join(", ") if value is sequence else value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </section>
 
-        {% if report.details %}
-        <section class="card">
-            <h2>Format Details</h2>
-            <table>
-                {% for key, value in report.details.items() %}
-                <tr>
-                    <th>{{ key.replace("_", " ") | title }}</th>
-                    <td>{{ value if value is string else value | join(", ") if value is sequence else value }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </section>
-        {% endif %}
+                <section id="indicators" class="panel">
+                    <div class="section-header">
+                        <p class="section-eyebrow">Indicators</p>
+                        <h2 class="section-heading">Extracted indicators</h2>
+                        <p class="section-description">Static signals grouped by finding category. Severity is shown as text and color.</p>
+                    </div>
+                    <table>
+                        <caption>Static indicator findings</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Severity</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Value</th>
+                                <th scope="col">Context</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if report.findings %}
+                                {% for finding in report.findings %}
+                                <tr>
+                                    <td><span class="tag severity-{{ finding.severity }}">{{ finding.severity | upper }}</span></td>
+                                    <td>{{ finding.category }}</td>
+                                    <td>{{ finding.value }}</td>
+                                    <td>{{ finding.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="4" class="empty">No indicators found.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </section>
 
-        {% if report.sections %}
-        <section class="card">
-            <h2>Sections</h2>
-            <table>
-                <tr>
-                    <th>Name</th>
-                    <th>Size</th>
-                    <th>Entropy</th>
-                    <th>Flags</th>
-                    <th>Virtual address</th>
-                </tr>
-                {% for section in report.sections %}
-                <tr>
-                    <td>{{ section.name }}</td>
-                    <td>{{ section.size }}</td>
-                    <td>{{ section.entropy }}</td>
-                    <td>{{ section.flags | join(", ") if section.flags else "-" }}</td>
-                    <td>{{ section.virtual_address or "-" }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </section>
-        {% endif %}
+                <section id="structure" class="panel">
+                    <div class="section-header">
+                        <p class="section-eyebrow">Structure</p>
+                        <h2 class="section-heading">Structure & imports</h2>
+                        <p class="section-description">Section metadata, import table entries, exports, and YARA matches when available.</p>
+                    </div>
 
-        {% if report.imports %}
-        <section class="card">
-            <h2>Imports</h2>
-            <ul class="code-list">
-                {% for item in report.imports[:100] %}
-                    <li><code>{{ item }}</code></li>
-                {% endfor %}
-            </ul>
-        </section>
-        {% endif %}
-
-        <section class="card">
-            <h2>Strings</h2>
-            {% if report.strings %}
-                {% for category, values in report.strings.items() %}
-                    {% if category != "other" %}
-                    <h3>{{ category.replace("_", " ") | title }}</h3>
-                    <ul class="code-list">
-                        {% for value in values[:50] %}
-                            <li><code>{{ value }}</code></li>
-                        {% endfor %}
-                    </ul>
+                    {% if report.sections %}
+                    <table>
+                        <caption>Binary sections</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Size</th>
+                                <th scope="col">Entropy</th>
+                                <th scope="col">Flags</th>
+                                <th scope="col">Virtual address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for section in report.sections %}
+                            <tr>
+                                <td class="mono">{{ section.name }}</td>
+                                <td class="mono">{{ section.size }}</td>
+                                <td>
+                                    <div class="entropy-cell compact">
+                                        <div class="entropy-track"><div class="entropy-fill" style="width: {{ (section.entropy / 8 * 100) | round(1) }}%"></div></div>
+                                        <span class="mono">{{ section.entropy }}</span>
+                                    </div>
+                                </td>
+                                <td class="mono">{{ section.flags | join(", ") if section.flags else "-" }}</td>
+                                <td class="mono">{{ section.virtual_address or "-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="empty">No section table available for this file type or parser configuration.</p>
                     {% endif %}
-                {% endfor %}
-            {% else %}
-                <p class="empty">No readable strings found.</p>
-            {% endif %}
-        </section>
+
+                    {% if report.imports %}
+                    <table class="subtable">
+                        <caption>Imports</caption>
+                        <thead>
+                            <tr><th scope="col">Imported symbol</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for item in report.imports[:120] %}
+                            <tr><td class="mono">{{ item }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+
+                    {% if report.yara_matches %}
+                    <table class="subtable">
+                        <caption>YARA matches</caption>
+                        <thead>
+                            <tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Source</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in report.yara_matches %}
+                            <tr><td class="mono">{{ rule }}</td><td><span class="tag severity-medium">MEDIUM</span></td><td>local rules</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </section>
+
+                <section id="strings" class="panel">
+                    <div class="section-header">
+                        <p class="section-eyebrow">Strings</p>
+                        <h2 class="section-heading">Recovered strings</h2>
+                        <p class="section-description">Readable strings grouped by static-analysis category. Values are rendered in monospace because they came from the sample.</p>
+                    </div>
+                    {% if report.strings %}
+                        {% for category, values in report.strings.items() %}
+                            {% if category != "other" %}
+                            <table class="subtable">
+                                <caption>{{ category.replace("_", " ") | title }} ({{ values | length }})</caption>
+                                <thead>
+                                    <tr><th scope="col">Value</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for value in values[:60] %}
+                                    <tr><td class="mono">{{ value }}</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="empty">No readable strings found.</p>
+                    {% endif %}
+                </section>
+            </div>
+
+            <aside class="risk-panel" id="risk-summary">
+                <p class="section-eyebrow">Risk summary</p>
+                <strong class="risk-label severity-text-{{ report.risk }}">{{ report.risk | upper }}</strong>
+                <p>{{ report.summary }}</p>
+                <dl class="risk-counts">
+                    <div><dt>Indicators</dt><dd class="mono">{{ report.findings | length }}</dd></div>
+                    <div><dt>Strings</dt><dd class="mono">{{ report.string_count }}</dd></div>
+                    <div><dt>Entropy</dt><dd class="mono">{{ report.entropy }}</dd></div>
+                </dl>
+                <div class="severity-bars" aria-label="Severity count bars">
+                    {% set high_count = report.findings | selectattr("severity", "equalto", "high") | list | length %}
+                    {% set medium_count = report.findings | selectattr("severity", "equalto", "medium") | list | length %}
+                    {% set low_count = report.findings | selectattr("severity", "equalto", "low") | list | length %}
+                    <div><span>HIGH</span><i class="bar high" style="width: {{ high_count * 20 + 4 }}%"></i><b>{{ high_count }}</b></div>
+                    <div><span>MED</span><i class="bar medium" style="width: {{ medium_count * 20 + 4 }}%"></i><b>{{ medium_count }}</b></div>
+                    <div><span>LOW</span><i class="bar low" style="width: {{ low_count * 20 + 4 }}%"></i><b>{{ low_count }}</b></div>
+                </div>
+                <section id="notes" class="notes-block">
+                    <label for="analyst-notes">Analyst notes</label>
+                    <textarea id="analyst-notes" data-notes-key="rev-notes-{{ report.sha256 }}" placeholder="Local notes for this sample"></textarea>
+                </section>
+            </aside>
+        </div>
     </main>
+
+    <script src="/static/ui.js"></script>
 </body>
 </html>

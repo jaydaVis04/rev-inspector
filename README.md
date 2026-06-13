@@ -46,7 +46,7 @@ pip install -r requirements.txt
 uvicorn web.app:app --reload
 ```
 
-Open `http://127.0.0.1:8000` and upload a sample for static inspection. The server stores uploads under `uploads/` for local review and never executes them.
+Open `http://127.0.0.1:8000` for the local workbench UI. It uses a fixed topbar, left report rail, dense analysis tables, upload progress, current-session recent analyses, local analyst notes, and explicit static-analysis guardrails. The server stores uploads under `uploads/` for local review and never executes them.
 
 ```json
 {

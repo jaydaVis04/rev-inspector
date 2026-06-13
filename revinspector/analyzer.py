@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .entropy import file_entropy
 from .report import analyze_file as analyze_report
 
 
@@ -13,19 +14,11 @@ def analyze_file(path: Path) -> dict[str, Any]:
     data["file_type"] = data["type"]
     data["size_bytes"] = data["size"]
     data["sha256"] = data["hashes"]["sha256"]
-    data["entropy"] = _highest_entropy(data)
+    data["entropy"] = round(file_entropy(path), 3)
     data["string_count"] = sum(len(values) for values in data["strings"].values())
     data["sample_strings"] = _sample_strings(data)
     data["indicators"] = [finding["value"] for finding in data["findings"]]
     return data
-
-
-def _highest_entropy(data: dict[str, Any]) -> float:
-    sections = data.get("sections", [])
-    if not sections:
-        return 0.0
-    return max(float(section["entropy"]) for section in sections)
-
 
 def _sample_strings(data: dict[str, Any], limit: int = 50) -> list[str]:
     strings: list[str] = []

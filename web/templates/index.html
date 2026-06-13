@@ -7,37 +7,123 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <main class="container">
-        <section class="hero">
-            <p class="eyebrow">Static analysis only</p>
-            <h1>Rev Inspector</h1>
-            <p>Upload a binary, script, APK, or archive for local inspection. The file is read as bytes and is never executed.</p>
-        </section>
+    <header class="topbar">
+        <div class="topbar-brand">Rev Inspector</div>
+        <div class="topbar-version">v0.1.0</div>
+        <div class="topbar-status">
+            <span class="status-dot pass"></span>
+            Backend ready
+        </div>
+    </header>
 
-        <section class="upload-panel">
-            <form action="/analyze" method="post" enctype="multipart/form-data">
-                <label for="file">Choose a sample</label>
-                <div class="upload-row">
-                    <input id="file" type="file" name="file" required>
-                    <button type="submit">Analyze</button>
-                </div>
+    <nav class="nav-rail" aria-label="Primary navigation">
+        <form id="rail-upload-form" action="/analyze" method="post" enctype="multipart/form-data">
+            <label class="rail-upload" for="rail-file">Upload sample</label>
+            <input id="rail-file" class="sr-only" type="file" name="file" onchange="this.form.submit()">
+        </form>
+        <a class="nav-item active" href="#intake">Intake</a>
+        <a class="nav-item" href="#recent">Recent analyses</a>
+        <a class="nav-item" href="#guardrails">Guardrails</a>
+    </nav>
+
+    <main class="workspace">
+        <section id="intake" class="panel">
+            <div class="section-header">
+                <p class="section-eyebrow">Intake</p>
+                <h1 class="page-title">Static analysis workbench</h1>
+                <p class="section-description">Drag a file here, or click to choose. Binary, script, APK, archive — up to {{ max_upload_mb }}MB. Nothing is executed.</p>
+            </div>
+
+            {% if error %}
+            <div class="alert" role="alert">{{ error }}</div>
+            {% endif %}
+
+            <form id="upload-form" class="drop-zone" action="/analyze" method="post" enctype="multipart/form-data">
+                <label for="file" class="drop-label">
+                    <span class="drop-title">Choose file for analysis</span>
+                    <span class="drop-copy">Accepted: PE, ELF, Mach-O, APK, ZIP, scripts. Max {{ max_upload_mb }}MB. Nothing is executed.</span>
+                </label>
+                <input id="file" type="file" name="file" required>
+                <button class="button-primary" type="submit">Analyze</button>
             </form>
+
+            <div id="upload-state" class="upload-state" hidden>
+                <div class="upload-state-row">
+                    <strong id="selected-file">sample.bin</strong>
+                    <span id="selected-size">0 bytes</span>
+                </div>
+                <div class="progress-track" aria-hidden="true">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <p id="progress-label">Preparing upload...</p>
+            </div>
         </section>
 
-        <section class="feature-grid">
-            <div>
-                <h2>File facts</h2>
-                <p>Type, size, hashes, architecture, and format details.</p>
+        <section id="recent" class="panel">
+            <div class="section-header">
+                <p class="section-eyebrow">History</p>
+                <h2 class="section-heading">Recent analyses</h2>
+                <p class="section-description">Current-session uploads only. Uploaded files remain local and are not exposed through the web server.</p>
             </div>
-            <div>
-                <h2>Static indicators</h2>
-                <p>URLs, IPs, paths, commands, registry keys, suspicious APIs, and entropy signals.</p>
+            <table>
+                <caption>Recent local analyses</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Filename</th>
+                        <th scope="col">Analyzed</th>
+                        <th scope="col">Risk</th>
+                        <th scope="col">Indicators</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_analyses %}
+                        {% for item in recent_analyses %}
+                        <tr>
+                            <td class="mono">{{ item.filename }}</td>
+                            <td class="mono">{{ item.analyzed_at }}</td>
+                            <td><span class="tag severity-{{ item.risk | lower }}">{{ item.risk }}</span></td>
+                            <td class="mono">{{ item.indicator_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="empty">No files analyzed in this session.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </section>
+
+        <section id="guardrails" class="panel">
+            <div class="section-header">
+                <p class="section-eyebrow">Guardrails</p>
+                <h2 class="section-heading">Security posture</h2>
+                <p class="section-description">Controls applied before a file reaches the analyzer.</p>
             </div>
-            <div>
-                <h2>Binary structure</h2>
-                <p>Sections, imports, exports, YARA matches, and risk summary when available.</p>
-            </div>
+            <table>
+                <caption>Upload and execution guardrails</caption>
+                <tbody>
+                    <tr>
+                        <th scope="row">Execution policy</th>
+                        <td><span class="tag severity-pass">PASS</span> Files are read as bytes only. No uploaded file is executed.</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Upload storage</th>
+                        <td><span class="tag severity-pass">PASS</span> Filenames are sanitized and stored with randomized prefixes under uploads/.</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Upload limit</th>
+                        <td><span class="tag severity-pass">PASS</span> Requests are capped at {{ max_upload_mb }}MB and oversized partial files are removed.</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Browser headers</th>
+                        <td><span class="tag severity-pass">PASS</span> nosniff, DENY framing, no-referrer, and restrictive permissions headers are set.</td>
+                    </tr>
+                </tbody>
+            </table>
         </section>
     </main>
+
+    <script src="/static/ui.js"></script>
 </body>
 </html>
