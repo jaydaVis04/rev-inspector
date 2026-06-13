@@ -91,7 +91,7 @@ python3 -m revinspector samples/example.sh
 This repo includes a project-scoped shadcn.io MCP config in `.codex/config.toml`. Export your personal Pro token before starting Codex:
 
 ```bash
-export SHADCNIO_BEARER="Bearer $SHADCNIO_TOKEN"
+export SHADCNIO_TOKEN="your-token-here"
 ```
 
 Then restart Codex from this trusted project and call the server explicitly, for example: `use shadcnio to search for dashboard table blocks`.
