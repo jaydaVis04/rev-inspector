@@ -18,6 +18,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[analysis]"
 rev-inspector path/to/sample
+rev-inspector path/to/sample --html-out report.html
 ```
 
 The core CLI works with only the Python standard library. Optional dependencies improve parsing:

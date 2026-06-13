@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from revinspector.report import analyze_file, to_json, to_text
+from revinspector.report import analyze_file, to_html, to_json, to_text
 
 
 class ReportTests(unittest.TestCase):
@@ -24,6 +24,7 @@ class ReportTests(unittest.TestCase):
             self.assertIn("network access", {finding["value"] for finding in data["findings"]})
             self.assertIn("Summary:", to_text(report))
             self.assertIn('"type": "script"', to_json(report))
+            self.assertIn("<h2>Indicators</h2>", to_html(report))
 
 
 if __name__ == "__main__":
