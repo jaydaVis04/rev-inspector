@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rev-inspector"
+version = "0.1.0"
+description = "Static binary inspection assistant for defensive reverse engineering education."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Rev Inspector contributors" }]
+license = { text = "MIT" }
+dependencies = [
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+analysis = [
+  "capstone>=5.0",
+  "macholib>=1.16",
+  "pefile>=2023.2.7",
+  "pyelftools>=0.31",
+  "yara-python>=4.5",
+]
+web = [
+  "fastapi>=0.115",
+  "python-multipart>=0.0.9",
+  "uvicorn>=0.30",
+]
+dev = [
+  "pytest>=8.2",
+]
+
+[project.scripts]
+rev-inspector = "revinspector.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["revinspector*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
