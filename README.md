@@ -1,6 +1,6 @@
 # Rev Inspector
 
-Rev Inspector is a static binary inspection assistant for learning defensive reverse engineering and malware-analysis concepts without executing unknown samples.
+Rev Inspector is a static binary inspection assistant for learning defensive reverse engineering and malware-analysis concepts without executing unknown samples!
 
 It accepts a compiled file or script and produces a structured report with file type, hashes, extracted strings, metadata, entropy, imports, and suspicious indicators.
 
